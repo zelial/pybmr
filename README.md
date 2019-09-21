@@ -38,6 +38,4 @@ pokud je prihlasen, vrati cislo jako string
 ### Syntax returned from BMR
 ```
 1Pokoj 202 v  021.7+12012.0000.000.0000000000
-
-<n "1"><13 nazev><n ?><nn.n aktualni><1 "+"><nnn ?><nn.n nastavena t><...>
 ````
