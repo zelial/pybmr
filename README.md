@@ -31,8 +31,7 @@ for id, value in status.items():
 ```
 curl -X POST http://192.168.1.menu.html -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' -d 'loginName=C327&passwd=242136'
 curl -X POST http://192.168.1.5/numOfRooms -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' -d 'param=+'
-pokud neni prihlasen, vrati jako payload 0x00 jako posledni znak
-pokud je prihlasen, vrati cislo jako string
+curl -X POST -Si http://192.168.1.5/wholeRoom -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' -d 'param=3'
 ```
 
 ### Syntax returned from BMR
