@@ -11,9 +11,7 @@ class Bmr:
         self.user = user
         self.password = password
 
-    def getStatus(self):
-        #if self.auth() == False:
-        #    return ""  # TODO proper return code
+    def getNumCircuits(self):
         headers = {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
         response = requests.post('http://'+self.ip+'/numOfRooms', headers=headers, data='param=+')
         if(response.status_code == 200):
@@ -22,16 +20,9 @@ class Bmr:
                 response = requests.post('http://'+self.ip+'/numOfRooms', headers=headers, data='param=+')
 
             cnt = int(response.content) # read number of sensors
-            if cnt == 0:
-                return [] # TODO failed response
-
-            rooms = []
-            for id in range(0, cnt-1):
-                room = self.getRoom(id)
-                rooms.append(room)
-            return rooms
-
-        return [] # TODO proper return object
+            return cnt
+        else
+            return None
 
 
     '''1Pokoj 202 v  021.7+12012.0000.000.0000000000
@@ -48,23 +39,31 @@ class Bmr:
         , POS_LETO = 43
         , POS_S_CHLADI = 44
     '''
-    def getRoom(self, id):
-        room = {}
+    def getStatus(self, id):
         headers = {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
         payload = {'param': id}
         response = requests.post('http://'+self.ip+'/wholeRoom', headers=headers, data=payload)
-        r = response.content
         if(response.status_code == 200):
+            if response.content[0] == 0: # Not authorized, because  of a new day. Authorize and try again
+                self.auth()
+                response = requests.post('http://'+self.ip+'/wholeRoom', headers=headers, data=payload)
+            if response.content[0] == 0: # fail if authorization fails
+                return None
+
+            r = response.content
+            room = {}
             room['name'] = r[1:14].strip().decode("utf-8")
             room['id'] = id
-            room['enabled'] = 'on' if int(r[0:1]) == 1 else 'off'
-            room['heating'] = 'on' if int(r[36:37]) == 1 else 'off'
-            room['cooling'] = 'on' if int(r[44:45]) == 1 else 'off'
-            room['summer'] = 'on' if int(r[43:44]) == 1 else 'off'
+            room['enabled'] = int(r[0:1]) == 1
+            room['heating'] = int(r[36:37]) == 1
+            room['cooling'] = int(r[44:45]) == 1
+            room['summer'] =  int(r[43:44]) == 1
             room['required_temp'] = float(r[22:27])
             room['current_temp'] = float(r[14:19])
-            room['warning'] = 'on' if int(r[39:42]) == 1 else 'off'
-        return room
+            room['warning'] = int(r[39:42])
+            return room
+        else:
+            return None
 
     def auth(self):
         payload = {'loginName': loginFunction(self.user), 'passwd': loginFunction(self.password)}
