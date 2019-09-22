@@ -21,7 +21,7 @@ class Bmr:
 
             cnt = int(response.content) # read number of sensors
             return cnt
-        else
+        else:
             return None
 
 
@@ -73,6 +73,15 @@ class Bmr:
         return True
 
 
+    def setTargetTemperature(self, temperature, circuit_id):
+        headers = {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
+        payload = {'manualTemp': str(circuit_id).zfill(2) + '0000'}
+        response = requests.post('http://'+self.ip+'/saveManualTemp', headers=headers, data=payload)
+        if(response.status_code == 200):
+            if response.content == 'true':
+                return True
+            else
+                return False
 
 
 def loginFunction(input):
