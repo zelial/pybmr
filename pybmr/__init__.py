@@ -94,15 +94,15 @@ class Bmr:
         if(response.status_code == 200):
             content = response.content.decode('ascii')
             if content == '1':
-                return True
-            if content == '0':
                 return False
+            if content == '0':
+                return True
         return None
 
     def saveSummerMode(self, mode_bool):
         self.auth()
         headers = {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
-        payload = {'summerMode': '1' if mode_bool else '0'}
+        payload = {'summerMode': '1' if mode_bool == False else '0'}
         response = requests.post('http://'+self.ip+'/saveSummerMode', headers=headers, data=payload)
         if(response.status_code == 200):
             if response.content[0] == 0: # fail if authorization fails
