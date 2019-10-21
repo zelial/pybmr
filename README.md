@@ -38,3 +38,9 @@ curl -X POST -Si http://192.168.1.5/wholeRoom -H 'Content-Type: application/x-ww
 ```
 1Pokoj 202 v  021.7+12012.0000.000.0000000000
 ````
+
+# Upload
+```
+python3 setup.py sdist bdist_wheel
+python3 -m twine upload  dist/*
+```
