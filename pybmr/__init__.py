@@ -198,6 +198,9 @@ class Bmr:
 
 
     def get_mode_id(self, circuit_id):
+        if circuit_id == None:
+            return None
+
         self.auth()
         headers = {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
 

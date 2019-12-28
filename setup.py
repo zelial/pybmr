@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pybmr",
-    version="0.5",
+    version="0.6",
     author="Honza Slesinger",
     author_email="slesinger@gmail.com",
     description="Python library for communication with BMR HC64 Heating Controller units",
