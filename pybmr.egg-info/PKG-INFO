@@ -47,6 +47,11 @@ Description: # PyBmr
         1Pokoj 202 v  021.7+12012.0000.000.0000000000
         ````
         
+        # Upload
+        ```
+        python3 setup.py sdist bdist_wheel
+        python3 -m twine upload  dist/*
+        ```
 Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
