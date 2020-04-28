@@ -191,25 +191,34 @@ class Bmr:
 
         return {"id": schedule_id, "name": schedule["name"].rstrip(), "timetable": timetable}
 
-    def setTargetTemperature(self, temperature, mode_order_number, mode_name):
-        self.auth()
+    def saveSchedule(self, schedule_id, name, timetable):
+        """ Save schedule settings. Name is the new schedule name. Timetable is
+            a list of tuples of time and target temperature. When the schedule is
+            associated with a circuit BMR heating controller will use the
+            schedule timetable to set the target temperature at the specified
+            time. Note that the first entry in the timetable must be always for
+            time "00:00".
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
 
+        if timetable[0]["time"] != "00:00":
+            raise Exception("First timetable entry must be for time 00:00")
+
+        url = "http://{}/saveMode".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        payloadstr = (
-            "modeSettings="
-            + str(mode_order_number).zfill(2)
-            + mode_name.ljust(13, "+")
-            + "00%3A00"
-            + str(int(temperature)).zfill(3)
-        )
-        response = requests.post(
-            "http://" + self.ip + "/saveMode", headers=headers, data=payloadstr
-        )
-        if response.status_code == 200:
-            if response.content == "true":
-                return True
-            else:
-                return False
+
+        data = {
+            "modeSettings": "{:02d}{:13.13}{}".format(
+                schedule_id,
+                name[:13],
+                "".join(["{}{:03d}".format(item["time"], int(item["temperature"])) for item in timetable]),
+            )
+        }
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return "true" in response.text
 
     def getSummerMode(self):
         """ Return True if summer mode is currently activated.
