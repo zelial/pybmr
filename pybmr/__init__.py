@@ -258,22 +258,36 @@ class Bmr:
             result["end_date"] = datetime.strptime(low_mode["end_datetime"], "%Y-%m-%d%H:%M")
         return result
 
-    # 015 - low temperature
-    # date from
-    # date to
-    def lowSave(self, mode_bool):
-        self.auth()
+    def setLowMode(self, enabled, temperature=None, start_datetime=None, end_datetime=None):
+        """ Enable or disable LOW mode. Temperature specified the desired
+            temperature for the LOW mode.
+
+            - If start_date is provided enable LOW mode indefiniitely.
+            - If also end_date is provided end the LOW mode at this specified date/time.
+            - If neither start_date nor end_date is provided disable LOW mode.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        if start_datetime is None:
+            start_datetime = datetime.now()
+
+        if temperature is None:
+            temperature = self.getLowMode()["temperature"]
+
+        url = "http://{}/lowSave".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        if mode_bool == True:
-            payload = "lowData=0152019-10-1020%3A392025-12-3123%3A59"
-        else:
-            payload = "lowData=015++++++++++++++++++++++++++++++"
-        response = requests.post(
-            "http://" + self.ip + "/lowSave", headers=headers, data=payload
-        )
-        if response.status_code == 200:
-            if response.content[0] == 0:  # fail if authorization fails
-                return None
+        data = {
+            "lowData": "{:03d}{}{}".format(
+                int(temperature),
+                start_datetime.strftime("%Y-%m-%d%H:%M") if enabled and start_datetime else " " * 15,
+                end_datetime.strftime("%Y-%m-%d%H:%M") if enabled and end_datetime else " " * 15,
+            )
+        }
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return "true" in response.text
 
     def lowSaveRooms(self, circuits, val):
         self.auth()
