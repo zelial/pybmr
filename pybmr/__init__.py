@@ -327,15 +327,12 @@ class Bmr:
                 return False
 
     def loadHDO(self):
-        self.auth()
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/loadHDO".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(
-            "http://" + self.ip + "/loadHDO", headers=headers, data="param=+"
-        )
-        if response.status_code == 200:
-            if response.content.decode("ascii") == "1":
-                return True
-            else:
-                return False
-
-
+        response = requests.post(url, headers=headers, data="param=+")
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return response.text == "1"
