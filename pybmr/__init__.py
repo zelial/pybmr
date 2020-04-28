@@ -189,39 +189,42 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
-    # val to be  '0' or '1'
-    def letoSaveRooms(self, circuits, val):
-        self.auth()
+    def loadSummerModeAssignments(self):
+        """ Load circuit summer mode assignments, i.e. which circuits will be
+            affected by summer mode when it is turned on.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/letoLoadRooms".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        response = requests.post(url, headers=headers, data={"param": "+"})
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        try:
+            return [bool(int(x)) for x in list(response.text)]
+        except ValueError:
+            raise Exception("Server returned malformed data: {}. Try again later".format(response.text))
 
-        # Read current values for all circuits
-        response = requests.post(
-            "http://" + self.ip + "/letoLoadRooms", headers=headers, data="param=+"
-        )
-        if not (response.status_code == 200 and response.content[0] in ["0", "1"]):
-            pass
-        values = response.content.decode("ascii")
+    def saveSummerModeAssignments(self, circuits, value):
+        """ Assign or remove specified circuits to/from summer mode. Leave
+            other circuits as they are.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
 
-        # Set values
+        assignments = self.loadSummerModeAssignments()
+
         for circuit_id in circuits:
-            values = values[:circuit_id] + val + values[circuit_id + 1 :]
+            assignments[circuit_id] = value
 
-        # Write values to BMR
-        payload = {"value": values}
-        response = requests.post(
-            "http://" + self.ip + "/letoSaveRooms", headers=headers, data=payload
-        )
-        if response.status_code == 200:
-            if response.content == "true":
-                return True
-            else:
-                return False
-
-    def include_to_summer(self, circuits):
-        self.letoSaveRooms(circuits, "1")
-
-    def exclude_from_summer(self, circuits):
-        self.letoSaveRooms(circuits, "0")
+        url = "http://{}/letoSaveRooms".format(self.ip)
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"value": "".join([str(int(x)) for x in assignments])}
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return "true" in response.text
 
     def loadLows(self):
         self.auth()
