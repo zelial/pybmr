@@ -2,8 +2,9 @@
 # Tested with:
 #    BMR HC64 v2013
 
-import requests
 from datetime import date
+
+import requests
 
 
 class Bmr:
