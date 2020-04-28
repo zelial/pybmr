@@ -374,27 +374,34 @@ class Bmr:
                     result["current_day"] = idx + 1
         return result
 
-    # 230110-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1
-    # 230109-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1
-    # 23011013-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1
-    def set_mode_id(self, circuit_id, mode_id):
-        self.auth()
+    def saveCircuitSchedules(self, circuit_id, day_schedules, starting_day=1):
+        """ Assign circuits schedules. It is possible to have a different
+            schedule for up to 21 days.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/saveAssignmentModes".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
-        payload = {
-            "roomSettings": str(circuit_id).zfill(2)
-            + "01"
-            + str(mode_id).zfill(2)
-            + "-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1"
+        # Make sure that day_schedules is list with length 21, if not append None's at the end
+        day_schedules += [None for _ in range(21 - len(day_schedules))]
+
+        # Make sure there are no undefined gaps
+        for idx in range(len(day_schedules) - 1):
+            if day_schedules[idx] is None and day_schedules[idx + 1] is not None:
+                raise Exception("Circuit schedules can't have any undefined gaps.")
+
+        # Example: 000108-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1
+        data = {
+            "roomSettings": "{:02d}{:02d}{}".format(
+                circuit_id, starting_day, "".join(["{:02d}".format(x if x is not None else -1) for x in day_schedules])
+            )
         }
-        response = requests.post(
-            "http://" + self.ip + "/saveAssignmentModes", headers=headers, data=payload
-        )
-        if response.status_code == 200:
-            if response.content == "true":
-                return True
-            else:
-                return False
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return "true" in response.text
 
     def loadHDO(self):
         if not self.auth():
