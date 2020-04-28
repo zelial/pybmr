@@ -143,6 +143,20 @@ class Bmr:
             return False
         return True
 
+    def loadSchedules(self):
+        """Load schedules.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/listOfModes".format(self.ip)
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"param": "+"}
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return [x.rstrip() for x in re.findall(r".{13}", response.text)]
+
     def setTargetTemperature(self, temperature, mode_order_number, mode_name):
         self.auth()
 
