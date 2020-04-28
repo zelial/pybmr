@@ -14,23 +14,18 @@ class Bmr:
         self.password = password
 
     def getNumCircuits(self):
-        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(
-            "http://" + self.ip + "/numOfRooms", headers=headers, data="param=+"
-        )
-        if response.status_code == 200:
-            if (
-                response.content[0] == 0
-            ):  # Not authorized, because  of a new day. Authorize and try again
-                self.auth()
-                response = requests.post(
-                    "http://" + self.ip + "/numOfRooms", headers=headers, data="param=+"
-                )
+        """ Get the number of heating circuits.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
 
-            cnt = int(response.content)  # read number of sensors
-            return cnt
-        else:
-            return None
+        url = "http://{}/numOfRooms".format(self.ip)
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"param": "+"}
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return int(response.text)
 
     """1Pokoj 202 v  021.7+12012.0000.000.0000000000
         , POS_ACTUALTEMP = 14
