@@ -2,7 +2,8 @@
 # Tested with:
 #    BMR HC64 v2013
 
-from datetime import date
+from datetime import datetime, date
+import re
 
 import requests
 
@@ -226,19 +227,36 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
-    def loadLows(self):
-        self.auth()
+    def getLowMode(self):
+        """ Get status of the LOW mode.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/loadLows".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(
-            "http://" + self.ip + "/loadLows", headers=headers, data="param=+"
+        response = requests.post(url, headers=headers, data={"param": "+"})
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        # The response is formatted as "<temperature><start_datetime><end_datetime>", let's parse it
+        match = re.match(
+            r"""
+            (?P<temperature>\d{3})
+            (?P<start_datetime>\d{4}-\d{2}-\d{2}\d{2}:\d{2})?
+            (?P<end_datetime>\d{4}-\d{2}-\d{2}\d{2}:\d{2})?
+            """,
+            response.text,
+            re.VERBOSE,
         )
-        if response.status_code == 200:
-            resp = response.content.decode("ascii")
-            if resp[3] == "2":
-                return True
-            else:
-                return False
-        return None
+        if not match:
+            raise Exception("Server returned malformed data: {}. Try again later".format(response.text))
+        low_mode = match.groupdict()
+        result = {"enabled": low_mode["start_datetime"] is not None, "temperature": int(low_mode["temperature"])}
+        if low_mode["start_datetime"]:
+            result["start_date"] = datetime.strptime(low_mode["start_datetime"], "%Y-%m-%d%H:%M")
+        if low_mode["end_datetime"]:
+            result["end_date"] = datetime.strptime(low_mode["end_datetime"], "%Y-%m-%d%H:%M")
+        return result
 
     # 015 - low temperature
     # date from
