@@ -27,52 +27,101 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return int(response.text)
 
-    """1Pokoj 202 v  021.7+12012.0000.000.0000000000
-        , POS_ACTUALTEMP = 14
-        , POS_REQUIRED = 19
-        , POS_REQUIREDALL = 22
-        , POS_USEROFFSET = 27
-        , POS_MAXOFFSET = 32
-        , POS_S_TOPI = 36
-        , POS_S_OKNO = 37
-        , POS_S_KARTA = 38
-        , POS_VALIDATE = 39
-        , POS_LOW = 42
-        , POS_LETO = 43
-        , POS_S_CHLADI = 44
-    """
+    def loadCircuit(self, circuit_id):
+        """ Get circuit status.
 
-    def getStatus(self, id):
+            Raw data returned from server:
+
+              1Pokoj 202 v  021.7+12012.0000.000.0000000000
+
+            Byte offsets of:
+              POS_ENABLED = 0
+              POS_NAME = 1
+              POS_ACTUALTEMP = 14
+              POS_REQUIRED = 19
+              POS_REQUIREDALL = 22
+              POS_USEROFFSET = 27
+              POS_MAXOFFSET = 32
+              POS_S_TOPI = 36
+              POS_S_OKNO = 37
+              POS_S_KARTA = 38
+              POS_VALIDATE = 39
+              POS_LOW = 42
+              POS_LETO = 43
+              POS_S_CHLADI = 44
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/wholeRoom".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        payload = {"param": id}
-        response = requests.post(
-            "http://" + self.ip + "/wholeRoom", headers=headers, data=payload
-        )
-        if response.status_code == 200:
-            if (
-                response.content[0] == 0
-            ):  # Not authorized, because  of a new day. Authorize and try again
-                self.auth()
-                response = requests.post(
-                    "http://" + self.ip + "/wholeRoom", headers=headers, data=payload
-                )
-            if response.content[0] == 0:  # fail if authorization fails
-                return None
+        data = {"param": circuit_id}
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
 
-            r = response.content
-            room = {}
-            room["name"] = r[1:14].strip().decode("utf-8")
-            room["id"] = id
-            room["enabled"] = int(r[0:1]) == 1
-            room["heating"] = int(r[36:37]) == 1
-            room["cooling"] = int(r[42:43]) == 1
-            room["summer"] = int(r[43:44]) == 1
-            room["required_temp"] = float(r[22:27])
-            room["current_temp"] = float(r[14:19])
-            room["warning"] = int(r[39:42])
-            return room
-        else:
-            return None
+        match = re.match(
+            r"""
+                (?P<enabled>.{1})                  # Whether the circuit is enabled
+                (?P<name>.{13})                    # Name of the circuit
+                (?P<temperature>.{5})              # Current temperature
+                (?P<target_temperature_str>.{3})   # Target temperature (string)
+                (?P<target_temperature>.{5})       # Target temperature (float)
+                (?P<user_offset>.{5})              # Current temperature offset set by user
+                (?P<max_offset>.{4})               # Max temperature offset
+                (?P<heating>.{1})                  # Whether the circuit is currently heating
+                (?P<window_heating>.{1})
+                (?P<card>.{1})
+                (?P<warning>.{3})                  # Warning code
+                (?P<low_mode>.{1})                 # Whether the circuit is assigned to low mode and low mode is active
+                (?P<summer_mode>.{1})              # Whether the circuit is assigned to summer mode and summer mode
+                                                   # is active
+                (?P<cooling>.{1})                  # Whether the circuit is cooling (only water-based circuits)
+                """,
+            response.text,
+            re.VERBOSE,
+        )
+        if not match:
+            raise Exception("Server returned malformed data: {}. Try again later".format(response.text))
+        room_status = match.groupdict()
+
+        # Sometimes some of the values are malformed, i.e. "00\x00\x00\x00" or "-1-1-"
+        result = {
+            "id": circuit_id,
+            "enabled": bool(int(room_status["enabled"])),
+            "name": room_status["name"].rstrip(),
+            "temperature": None,
+            "target_temperature": None,
+            "user_offset": None,
+            "max_offset": None,
+            "heating": bool(int(room_status["heating"])),
+            "warning": int(room_status["warning"]),
+            "cooling": bool(int(room_status["cooling"])),
+            "low_mode": bool(int(room_status["low_mode"])),
+            "summer_mode": bool(int(room_status["summer_mode"])),
+        }
+
+        try:
+            result["temperature"] = float(room_status["temperature"])
+        except ValueError:
+            pass
+
+        try:
+            result["target_temperature"] = float(room_status["target_temperature"])
+        except ValueError:
+            pass
+
+        try:
+            result["user_offset"] = float(room_status["user_offset"])
+        except ValueError:
+            pass
+
+        try:
+            result["max_offset"] = float(room_status["max_offset"])
+        except ValueError:
+            pass
+
+        return result
 
     def auth(self):
         payload = {
