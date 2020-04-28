@@ -162,20 +162,18 @@ class Bmr:
             else:
                 return False
 
-    # Summer
-    def loadSummerMode(self):
-        self.auth()
+    def getSummerMode(self):
+        """ Return True if summer mode is currently activated.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/loadSummerMode".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(
-            "http://" + self.ip + "/loadSummerMode", headers=headers, data="param=+"
-        )
-        if response.status_code == 200:
-            content = response.content.decode("ascii")
-            if content == "1":
-                return False
-            if content == "0":
-                return True
-        return None
+        response = requests.post(url, headers=headers, data="param=+")
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return response.text == "0"
 
     def saveSummerMode(self, mode_bool):
         self.auth()
