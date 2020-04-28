@@ -124,12 +124,21 @@ class Bmr:
         return result
 
     def auth(self):
-        payload = {
-            "loginName": loginFunction(self.user),
-            "passwd": loginFunction(self.password),
+        def bmr_hash(value):
+            output = ""
+            day = date.today().day
+            for c in value:
+                tmp = ord(c) ^ (day << 2)
+                output = output + hex(tmp)[2:].zfill(2)
+            return output.upper()
+
+        url = "http://{}/menu.html".format(self.ip)
+        data = {
+            "loginName": bmr_hash(self.user),
+            "passwd": bmr_hash(self.password),
         }
-        response = requests.post("http://" + self.ip + "/menu.html", data=payload)
-        if "res_error_title" in response.content.decode("utf-8"):
+        response = requests.post(url, data=data)
+        if "res_error_title" in response.text:
             return False
         return True
 
@@ -329,10 +338,3 @@ class Bmr:
                 return False
 
 
-def loginFunction(input):
-    output = ""
-    day = date.today().day
-    for c in input:
-        tmp = ord(c) ^ (day << 2)
-        output = output + hex(tmp)[2:].zfill(2)
-    return output.upper()
