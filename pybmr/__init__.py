@@ -323,22 +323,56 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
-    def get_mode_id(self, circuit_id):
-        if circuit_id == None:
-            return None
+    def loadCircuitSchedules(self, circuit_id):
+        """ Load circuit schedule assignments, i.e. which schedule is assigned
+            to what day. It is possible to set different schedule for up 21
+            days.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
 
-        self.auth()
+        url = "http://{}/roomSettings".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
-        payload = {"roomID": circuit_id}
-        response = requests.post(
-            "http://" + self.ip + "/roomSettings", headers=headers, data=payload
+        data = {"roomID": "{:02d}".format(circuit_id)}
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+
+        # Example: 0140-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1
+        match = re.match(
+            r"""
+                (?P<starting_day>\d{2})        # Which schedule should be the
+                                               # first to start with. Can be either
+                                               # "01", "08" or "15". Note that
+                                               # there can't be any unconfigured
+                                               # gaps (missing schedules) in any
+                                               # days between day 1 and the
+                                               # starting day.
+                (?P<day_schedules>([-\d]{2}){21})  # schedule IDs + indicator of the
+                                               # currently active schedule
+                """,
+            response.text,
+            re.VERBOSE,
         )
-        if response.status_code == 200:
-            try:
-                return int(response.content[2:4]) - 32
-            except ValueError:
-                return None
+        if not match:
+            raise Exception("Server returned malformed data: {}. Try again later".format(response.text))
+        circuit_schedules = match.groupdict()
+        result = {"starting_day": int(circuit_schedules["starting_day"]), "current_day": None, "day_schedules": []}
+        for idx, schedule_id in enumerate(re.findall(r"[-\d]{2}", circuit_schedules["day_schedules"])):
+            schedule_id = int(schedule_id)
+            if schedule_id == -1:
+                # The list of schedules must be continuous, there aren't
+                # allowed any "gaps". So this is the last entry, following items
+                # have to be are "-1" as well.
+                break
+            else:
+                result["day_schedules"].append(schedule_id & 0b00011111)  # schedule ID is in the lower 5 bits
+                if (
+                    schedule_id & 0b00100000 == 0b00100000
+                ):  # 6th rightmost bit is indicator of currently active schedule
+                    result["current_day"] = idx + 1
+        return result
 
     # 230110-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1
     # 230109-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1
