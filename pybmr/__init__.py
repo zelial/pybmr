@@ -175,16 +175,19 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return response.text == "0"
 
-    def saveSummerMode(self, mode_bool):
-        self.auth()
+    def setSummerMode(self, value):
+        """ Enable or disable summer mode.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/saveSummerMode".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        payload = {"summerMode": "1" if mode_bool == False else "0"}
-        response = requests.post(
-            "http://" + self.ip + "/saveSummerMode", headers=headers, data=payload
-        )
-        if response.status_code == 200:
-            if response.content[0] == 0:  # fail if authorization fails
-                return None
+        payload = {"summerMode": "0" if value else "1"}
+        response = requests.post(url, headers=headers, data=payload)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return "true" in response.text
 
     # val to be  '0' or '1'
     def letoSaveRooms(self, circuits, val):
