@@ -11,7 +11,7 @@ with open("test-requirements.txt") as fh:
 
 setuptools.setup(
     name="pybmr",
-    version="0.6",
+    version="0.7",
     author="Honza Slesinger",
     author_email="slesinger@gmail.com",
     description="Python library for communication with BMR HC64 Heating Controller units",
