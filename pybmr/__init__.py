@@ -220,6 +220,21 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    def deleteSchedule(self, schedule_id):
+        """ Delete schedule.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/deleteMode".format(self.ip)
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+
+        data = {"modeID": "{:02d}".format(schedule_id)}
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        return "true" in response.text
+
     def getSummerMode(self):
         """ Return True if summer mode is currently activated.
         """
