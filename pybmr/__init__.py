@@ -157,6 +157,40 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return [x.rstrip() for x in re.findall(r".{13}", response.text)]
 
+    def loadSchedule(self, schedule_id):
+        """ Load schedule settings.
+        """
+        if not self.auth():
+            raise Exception("Authentication failed, check username/password")
+
+        url = "http://{}/loadMode".format(self.ip)
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"modeID": "{:02d}".format(schedule_id)}
+        response = requests.post(url, headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+
+        # Example: 1 Byt        00:0002106:0002112:0002121:00021
+        match = re.match(
+            r"""
+                (?P<name>.{13})                          # schedule name
+                (?P<timetable>(\d{2}:\d{2}\d{3}){1,8})?  # time and target temperature
+            """,
+            response.text,
+            re.VERBOSE,
+        )
+        if not match:
+            raise Exception("Server returned malformed data: {}. Try again later".format(response.text))
+        schedule = match.groupdict()
+        timetable = None
+        if schedule["timetable"]:
+            timetable = [
+                {"time": x[0], "temperature": int(x[1])}
+                for x in re.findall(r"(\d{2}:\d{2})(\d{3})", schedule["timetable"])
+            ]
+
+        return {"id": schedule_id, "name": schedule["name"].rstrip(), "timetable": timetable}
+
     def setTargetTemperature(self, temperature, mode_order_number, mode_name):
         self.auth()
 
