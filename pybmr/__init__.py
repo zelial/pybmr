@@ -3,9 +3,24 @@
 #    BMR HC64 v2013
 
 from datetime import datetime, date
+from functools import wraps
 import re
 
 import requests
+
+
+def authenticated(func):
+    """ Decorator for ensuring we are logged-in before calling any BMR API
+        endpoints.
+    """
+
+    @wraps(func)
+    def wrapped(self, *args, **kwargs):
+        if not self._authenticate():
+            raise Exception("Authentication failed, check username/password")
+        return func(self, *args, **kwargs)
+
+    return wrapped
 
 
 class Bmr:
@@ -14,12 +29,34 @@ class Bmr:
         self.user = user
         self.password = password
 
+    def _authenticate(self):
+        """ Login to BMR controller. Note that BMR controller is using a kinda
+            weird and insecure authentication mechanism - it looks like it's
+            just remembering the username and IP address of the logged-in user.
+        """
+
+        def bmr_hash(value):
+            output = ""
+            day = date.today().day
+            for c in value:
+                tmp = ord(c) ^ (day << 2)
+                output = output + hex(tmp)[2:].zfill(2)
+            return output.upper()
+
+        url = "http://{}/menu.html".format(self.ip)
+        data = {
+            "loginName": bmr_hash(self.user),
+            "passwd": bmr_hash(self.password),
+        }
+        response = requests.post(url, data=data)
+        if "res_error_title" in response.text:
+            return False
+        return True
+
+    @authenticated
     def getNumCircuits(self):
         """ Get the number of heating circuits.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/numOfRooms".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": "+"}
@@ -28,6 +65,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return int(response.text)
 
+    @authenticated
     def loadCircuit(self, circuit_id):
         """ Get circuit status.
 
@@ -51,9 +89,6 @@ class Bmr:
               POS_LETO = 43
               POS_S_CHLADI = 44
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/wholeRoom".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": circuit_id}
@@ -124,31 +159,10 @@ class Bmr:
 
         return result
 
-    def auth(self):
-        def bmr_hash(value):
-            output = ""
-            day = date.today().day
-            for c in value:
-                tmp = ord(c) ^ (day << 2)
-                output = output + hex(tmp)[2:].zfill(2)
-            return output.upper()
-
-        url = "http://{}/menu.html".format(self.ip)
-        data = {
-            "loginName": bmr_hash(self.user),
-            "passwd": bmr_hash(self.password),
-        }
-        response = requests.post(url, data=data)
-        if "res_error_title" in response.text:
-            return False
-        return True
-
+    @authenticated
     def loadSchedules(self):
         """Load schedules.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/listOfModes".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": "+"}
@@ -157,12 +171,10 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return [x.rstrip() for x in re.findall(r".{13}", response.text)]
 
+    @authenticated
     def loadSchedule(self, schedule_id):
         """ Load schedule settings.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/loadMode".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"modeID": "{:02d}".format(schedule_id)}
@@ -191,6 +203,7 @@ class Bmr:
 
         return {"id": schedule_id, "name": schedule["name"].rstrip(), "timetable": timetable}
 
+    @authenticated
     def saveSchedule(self, schedule_id, name, timetable):
         """ Save schedule settings. Name is the new schedule name. Timetable is
             a list of tuples of time and target temperature. When the schedule is
@@ -199,9 +212,6 @@ class Bmr:
             time. Note that the first entry in the timetable must be always for
             time "00:00".
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         if timetable[0]["time"] != "00:00":
             raise Exception("First timetable entry must be for time 00:00")
 
@@ -220,12 +230,10 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @authenticated
     def deleteSchedule(self, schedule_id):
         """ Delete schedule.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/deleteMode".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
@@ -235,12 +243,10 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @authenticated
     def getSummerMode(self):
         """ Return True if summer mode is currently activated.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/loadSummerMode".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data="param=+")
@@ -248,12 +254,10 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return response.text == "0"
 
+    @authenticated
     def setSummerMode(self, value):
         """ Enable or disable summer mode.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/saveSummerMode".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         payload = {"summerMode": "0" if value else "1"}
@@ -262,13 +266,11 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @authenticated
     def loadSummerModeAssignments(self):
         """ Load circuit summer mode assignments, i.e. which circuits will be
             affected by summer mode when it is turned on.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/letoLoadRooms".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data={"param": "+"})
@@ -279,13 +281,11 @@ class Bmr:
         except ValueError:
             raise Exception("Server returned malformed data: {}. Try again later".format(response.text))
 
+    @authenticated
     def saveSummerModeAssignments(self, circuits, value):
         """ Assign or remove specified circuits to/from summer mode. Leave
             other circuits as they are.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         assignments = self.loadSummerModeAssignments()
 
         for circuit_id in circuits:
@@ -299,12 +299,10 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @authenticated
     def getLowMode(self):
         """ Get status of the LOW mode.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/loadLows".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data={"param": "+"})
@@ -330,6 +328,7 @@ class Bmr:
             result["end_date"] = datetime.strptime(low_mode["end_datetime"], "%Y-%m-%d%H:%M")
         return result
 
+    @authenticated
     def setLowMode(self, enabled, temperature=None, start_datetime=None, end_datetime=None):
         """ Enable or disable LOW mode. Temperature specified the desired
             temperature for the LOW mode.
@@ -338,9 +337,6 @@ class Bmr:
             - If also end_date is provided end the LOW mode at this specified date/time.
             - If neither start_date nor end_date is provided disable LOW mode.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         if start_datetime is None:
             start_datetime = datetime.now()
 
@@ -361,13 +357,11 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @authenticated
     def loadLowModeAssignments(self):
         """ Load circuit LOW mode assignments, i.e. which circuits will be
             affected by LOW mode when it is turned on.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/lowLoadRooms".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data={"param": "+"})
@@ -375,13 +369,11 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return [bool(int(x)) for x in list(response.text)]
 
+    @authenticated
     def saveLowModeAssignments(self, circuits, value):
         """ Assign or remove specified circuits to/from LOW mode. Leave
             other circuits as they are.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         assignments = self.loadLowModeAssignments()
 
         for circuit_id in circuits:
@@ -395,14 +387,12 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @authenticated
     def loadCircuitSchedules(self, circuit_id):
         """ Load circuit schedule assignments, i.e. which schedule is assigned
             to what day. It is possible to set different schedule for up 21
             days.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/roomSettings".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
@@ -446,13 +436,11 @@ class Bmr:
                     result["current_day"] = idx + 1
         return result
 
+    @authenticated
     def saveCircuitSchedules(self, circuit_id, day_schedules, starting_day=1):
         """ Assign circuits schedules. It is possible to have a different
             schedule for up to 21 days.
         """
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/saveAssignmentModes".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
@@ -475,10 +463,8 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @authenticated
     def loadHDO(self):
-        if not self.auth():
-            raise Exception("Authentication failed, check username/password")
-
         url = "http://{}/loadHDO".format(self.ip)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data="param=+")
