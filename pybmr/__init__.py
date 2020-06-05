@@ -204,7 +204,7 @@ class Bmr:
         return {"id": schedule_id, "name": schedule["name"].rstrip(), "timetable": timetable}
 
     @authenticated
-    def saveSchedule(self, schedule_id, name, timetable):
+    def setSchedule(self, schedule_id, name, timetable):
         """ Save schedule settings. Name is the new schedule name. Timetable is
             a list of tuples of time and target temperature. When the schedule is
             associated with a circuit BMR heating controller will use the
@@ -282,7 +282,7 @@ class Bmr:
             raise Exception("Server returned malformed data: {}. Try again later".format(response.text))
 
     @authenticated
-    def saveSummerModeAssignments(self, circuits, value):
+    def setSummerModeAssignments(self, circuits, value):
         """ Assign or remove specified circuits to/from summer mode. Leave
             other circuits as they are.
         """
@@ -370,7 +370,7 @@ class Bmr:
         return [bool(int(x)) for x in list(response.text)]
 
     @authenticated
-    def saveLowModeAssignments(self, circuits, value):
+    def setLowModeAssignments(self, circuits, value):
         """ Assign or remove specified circuits to/from LOW mode. Leave
             other circuits as they are.
         """
@@ -437,7 +437,7 @@ class Bmr:
         return result
 
     @authenticated
-    def saveCircuitSchedules(self, circuit_id, day_schedules, starting_day=1):
+    def setCircuitSchedules(self, circuit_id, day_schedules, starting_day=1):
         """ Assign circuits schedules. It is possible to have a different
             schedule for up to 21 days.
         """

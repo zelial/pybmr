@@ -71,8 +71,8 @@ def testGetSchedule(bmr):
     }
 
 
-def testSaveSchedule(bmr):
-    assert bmr.saveSchedule(
+def testSetSchedule(bmr):
+    assert bmr.setSchedule(
         0,
         "Schedule 1",
         [
@@ -116,8 +116,8 @@ def testGetSummerModeAssignments(bmr):
     ]
 
 
-def testSaveSummerModeAssignments(bmr):
-    assert bmr.saveSummerModeAssignments([0, 1, 2, 3], False)
+def testSetSummerModeAssignments(bmr):
+    assert bmr.setSummerModeAssignments([0, 1, 2, 3], False)
 
 
 def testGetLowMode(bmr):
@@ -149,16 +149,16 @@ def testGetLowModeAssignments(bmr):
     ]
 
 
-def testSaveLowModeAssignments(bmr):
-    assert bmr.saveLowModeAssignments([0, 1, 2, 3], False)
+def testSetLowModeAssignments(bmr):
+    assert bmr.setLowModeAssignments([0, 1, 2, 3], False)
 
 
 def testGetCircuitSchedules(bmr):
     assert bmr.getCircuitSchedules(0) == {"current_day": 1, "day_schedules": [8], "starting_day": 1}
 
 
-def testSaveCircuitSchedules(bmr):
-    assert bmr.saveCircuitSchedules(0, [1, 8, 9], 1)
+def testSetCircuitSchedules(bmr):
+    assert bmr.setCircuitSchedules(0, [1, 8, 9], 1)
 
 
 def testGetHDO(bmr):

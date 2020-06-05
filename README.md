@@ -46,7 +46,7 @@ print(f"Circuit 0 schedule for the first day is {circuit_schedules['day_schedule
 Save circuit schedules:
 
 ```
-bmr.saveCircuitSchedules(0, [0, 8])
+bmr.setCircuitSchedules(0, [0, 8])
 ```
 
 
@@ -69,7 +69,7 @@ print(f"Schedule {schedule['name']} has timetable {schedule['timetable']}")
 Save schedule:
 
 ```
-bmr.saveSchedule(0, "New schedule name", [("00:00", 21), ("06:00", 23), ("21:00", 21)])
+bmr.setSchedule(0, "New schedule name", [("00:00", 21), ("06:00", 23), ("21:00", 21)])
 ```
 
 Delete schedule:
@@ -110,13 +110,13 @@ for circuit_id, value in enumerate(assignments):
 Add circuits to summer mode:
 
 ```
-bmr.saveSummerModeAssignments([0, 1, 2], True)
+bmr.setSummerModeAssignments([0, 1, 2], True)
 ```
 
 Remove circuits from summer mode:
 
 ```
-bmr.saveSummerModeAssignments([0, 1, 2], False)
+bmr.setSummerModeAssignments([0, 1, 2], False)
 ```
 
 ### Low mode
@@ -164,13 +164,13 @@ for circuit_id, value in enumerate(assignments):
 Add circuits to low mode:
 
 ```
-bmr.saveLowModeAssignments([0, 1, 2, 6, 7, 8], True)
+bmr.setLowModeAssignments([0, 1, 2, 6, 7, 8], True)
 ```
 
 Remove circuits from low mode:
 
 ```
-bmr.saveLowModeAssignments([0, 1, 2, 6, 7, 8], False)
+bmr.setLowModeAssignments([0, 1, 2, 6, 7, 8], False)
 ```
 
 ### HDO
