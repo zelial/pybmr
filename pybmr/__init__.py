@@ -66,7 +66,7 @@ class Bmr:
         return int(response.text)
 
     @authenticated
-    def loadCircuit(self, circuit_id):
+    def getCircuit(self, circuit_id):
         """ Get circuit status.
 
             Raw data returned from server:
@@ -160,7 +160,7 @@ class Bmr:
         return result
 
     @authenticated
-    def loadSchedules(self):
+    def getSchedules(self):
         """Load schedules.
         """
         url = "http://{}/listOfModes".format(self.host)
@@ -172,7 +172,7 @@ class Bmr:
         return [x.rstrip() for x in re.findall(r".{13}", response.text)]
 
     @authenticated
-    def loadSchedule(self, schedule_id):
+    def getSchedule(self, schedule_id):
         """ Load schedule settings.
         """
         url = "http://{}/loadMode".format(self.host)
@@ -260,14 +260,14 @@ class Bmr:
         """
         url = "http://{}/saveSummerMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        payload = {"summerMode": "0" if value else "1"}
-        response = requests.post(url, headers=headers, data=payload)
+        data = {"summerMode": "0" if value else "1"}
+        response = requests.post(url, headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
     @authenticated
-    def loadSummerModeAssignments(self):
+    def getSummerModeAssignments(self):
         """ Load circuit summer mode assignments, i.e. which circuits will be
             affected by summer mode when it is turned on.
         """
@@ -286,7 +286,7 @@ class Bmr:
         """ Assign or remove specified circuits to/from summer mode. Leave
             other circuits as they are.
         """
-        assignments = self.loadSummerModeAssignments()
+        assignments = self.getSummerModeAssignments()
 
         for circuit_id in circuits:
             assignments[circuit_id] = value
@@ -358,7 +358,7 @@ class Bmr:
         return "true" in response.text
 
     @authenticated
-    def loadLowModeAssignments(self):
+    def getLowModeAssignments(self):
         """ Load circuit LOW mode assignments, i.e. which circuits will be
             affected by LOW mode when it is turned on.
         """
@@ -374,7 +374,7 @@ class Bmr:
         """ Assign or remove specified circuits to/from LOW mode. Leave
             other circuits as they are.
         """
-        assignments = self.loadLowModeAssignments()
+        assignments = self.getLowModeAssignments()
 
         for circuit_id in circuits:
             assignments[circuit_id] = value
@@ -388,7 +388,7 @@ class Bmr:
         return "true" in response.text
 
     @authenticated
-    def loadCircuitSchedules(self, circuit_id):
+    def getCircuitSchedules(self, circuit_id):
         """ Load circuit schedule assignments, i.e. which schedule is assigned
             to what day. It is possible to set different schedule for up 21
             days.
@@ -464,7 +464,7 @@ class Bmr:
         return "true" in response.text
 
     @authenticated
-    def loadHDO(self):
+    def getHDO(self):
         url = "http://{}/loadHDO".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data="param=+")

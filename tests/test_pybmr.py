@@ -5,8 +5,8 @@ def testGetNumCircuits(bmr):
     assert bmr.getNumCircuits() == 16
 
 
-def testLoadCircuit(bmr):
-    assert bmr.loadCircuit(0) == {
+def testGetCircuit(bmr):
+    assert bmr.getCircuit(0) == {
         "id": 0,
         "enabled": True,
         "name": "F01 Byt",
@@ -22,8 +22,8 @@ def testLoadCircuit(bmr):
     }
 
 
-def testLoadSchedules(bmr):
-    assert bmr.loadSchedules() == [
+def testGetSchedules(bmr):
+    assert bmr.getSchedules() == [
         "1 Byt",
         "2 Pokoj",
         "3 Loznice",
@@ -58,8 +58,8 @@ def testLoadSchedules(bmr):
     ]
 
 
-def testLoadSchedule(bmr):
-    assert bmr.loadSchedule(0) == {
+def testGetSchedule(bmr):
+    assert bmr.getSchedule(0) == {
         "id": 0,
         "name": "1 Byt",
         "timetable": [
@@ -95,8 +95,8 @@ def testSetSummerMode(bmr):
     assert bmr.setSummerMode(True)
 
 
-def testLoadSummerModeAssignments(bmr):
-    assert bmr.loadSummerModeAssignments() == [
+def testGetSummerModeAssignments(bmr):
+    assert bmr.getSummerModeAssignments() == [
         True,
         True,
         True,
@@ -128,8 +128,8 @@ def testSetLowMode(bmr):
     assert bmr.setLowMode(True, 18, datetime(2020, 4, 30, 18, 0, 0), datetime(2020, 9, 30, 18, 0, 0))
 
 
-def testLoadLowModeAssignments(bmr):
-    assert bmr.loadLowModeAssignments() == [
+def testGetLowModeAssignments(bmr):
+    assert bmr.getLowModeAssignments() == [
         False,
         False,
         False,
@@ -153,13 +153,13 @@ def testSaveLowModeAssignments(bmr):
     assert bmr.saveLowModeAssignments([0, 1, 2, 3], False)
 
 
-def testLoadCircuitSchedules(bmr):
-    assert bmr.loadCircuitSchedules(0) == {"current_day": 1, "day_schedules": [8], "starting_day": 1}
+def testGetCircuitSchedules(bmr):
+    assert bmr.getCircuitSchedules(0) == {"current_day": 1, "day_schedules": [8], "starting_day": 1}
 
 
 def testSaveCircuitSchedules(bmr):
     assert bmr.saveCircuitSchedules(0, [1, 8, 9], 1)
 
 
-def testLoadHDO(bmr):
-    assert not bmr.loadHDO()
+def testGetHDO(bmr):
+    assert not bmr.getHDO()

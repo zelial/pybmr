@@ -39,7 +39,7 @@ print(f"Circuit {circuit['name']}: temperature is {circuit['temperature']} °C, 
 Load circuit schedules (what schedule is assigned to what day). It is possible to assign a different schedule for up to 21 days.
 
 ```
-circuit_schedules = bmr.loadCircuitSchedules(0)
+circuit_schedules = bmr.getCircuitSchedules(0)
 print(f"Circuit 0 schedule for the first day is {circuit_schedules['day_schedules'][0]}")
 ```
 
@@ -55,14 +55,14 @@ bmr.saveCircuitSchedules(0, [0, 8])
 Load schedules:
 
 ```
-schedules = bmr.loadSchedules()
+schedules = bmr.getSchedules()
 print(schedule[0])  # Print the name of first schedule
 ```
 
 Get schedule details:
 
 ```
-schedule = bmr.loadSchedule(0)
+schedule = bmr.getSchedule(0)
 print(f"Schedule {schedule['name']} has timetable {schedule['timetable']}")
 ```
 
@@ -99,7 +99,7 @@ Load summer mode assignments (which circuits will be affected by turning the
 summer mode on):
 
 ```
-assignments = bmr.loadSummerModeAssignments()
+assignments = bmr.getSummerModeAssignments()
 for circuit_id, value in enumerate(assignments):
     if value:
         print(f"Circuit {circuit_id} is assigned to summer mode.")
@@ -153,7 +153,7 @@ Load low mode assignments (which circuits will be affected by turning the
 low mode on):
 
 ```
-assignments = bmr.loadLowModeAssignments()
+assignments = bmr.getLowModeAssignments()
 for circuit_id, value in enumerate(assignments):
     if value:
         print(f"Circuit {circuit_id} is assigned to low mode.")
@@ -178,7 +178,7 @@ bmr.saveLowModeAssignments([0, 1, 2, 6, 7, 8], False)
 Load HDO status:
 
 ```
-hdo = bmr.loadHDO()
+hdo = bmr.getHDO()
 if hdo:
   print("HDO is currently ON")
 else:
