@@ -24,8 +24,8 @@ def authenticated(func):
 
 
 class Bmr:
-    def __init__(self, ip, user, password):
-        self.ip = ip
+    def __init__(self, host, user, password):
+        self.host = host
         self.user = user
         self.password = password
 
@@ -43,7 +43,7 @@ class Bmr:
                 output = output + hex(tmp)[2:].zfill(2)
             return output.upper()
 
-        url = "http://{}/menu.html".format(self.ip)
+        url = "http://{}/menu.html".format(self.host)
         data = {
             "loginName": bmr_hash(self.user),
             "passwd": bmr_hash(self.password),
@@ -57,7 +57,7 @@ class Bmr:
     def getNumCircuits(self):
         """ Get the number of heating circuits.
         """
-        url = "http://{}/numOfRooms".format(self.ip)
+        url = "http://{}/numOfRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": "+"}
         response = requests.post(url, headers=headers, data=data)
@@ -89,7 +89,7 @@ class Bmr:
               POS_LETO = 43
               POS_S_CHLADI = 44
         """
-        url = "http://{}/wholeRoom".format(self.ip)
+        url = "http://{}/wholeRoom".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": circuit_id}
         response = requests.post(url, headers=headers, data=data)
@@ -163,7 +163,7 @@ class Bmr:
     def loadSchedules(self):
         """Load schedules.
         """
-        url = "http://{}/listOfModes".format(self.ip)
+        url = "http://{}/listOfModes".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": "+"}
         response = requests.post(url, headers=headers, data=data)
@@ -175,7 +175,7 @@ class Bmr:
     def loadSchedule(self, schedule_id):
         """ Load schedule settings.
         """
-        url = "http://{}/loadMode".format(self.ip)
+        url = "http://{}/loadMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"modeID": "{:02d}".format(schedule_id)}
         response = requests.post(url, headers=headers, data=data)
@@ -215,7 +215,7 @@ class Bmr:
         if timetable[0]["time"] != "00:00":
             raise Exception("First timetable entry must be for time 00:00")
 
-        url = "http://{}/saveMode".format(self.ip)
+        url = "http://{}/saveMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         data = {
@@ -234,7 +234,7 @@ class Bmr:
     def deleteSchedule(self, schedule_id):
         """ Delete schedule.
         """
-        url = "http://{}/deleteMode".format(self.ip)
+        url = "http://{}/deleteMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         data = {"modeID": "{:02d}".format(schedule_id)}
@@ -247,7 +247,7 @@ class Bmr:
     def getSummerMode(self):
         """ Return True if summer mode is currently activated.
         """
-        url = "http://{}/loadSummerMode".format(self.ip)
+        url = "http://{}/loadSummerMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data="param=+")
         if response.status_code != 200:
@@ -258,7 +258,7 @@ class Bmr:
     def setSummerMode(self, value):
         """ Enable or disable summer mode.
         """
-        url = "http://{}/saveSummerMode".format(self.ip)
+        url = "http://{}/saveSummerMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         payload = {"summerMode": "0" if value else "1"}
         response = requests.post(url, headers=headers, data=payload)
@@ -271,7 +271,7 @@ class Bmr:
         """ Load circuit summer mode assignments, i.e. which circuits will be
             affected by summer mode when it is turned on.
         """
-        url = "http://{}/letoLoadRooms".format(self.ip)
+        url = "http://{}/letoLoadRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data={"param": "+"})
         if response.status_code != 200:
@@ -291,7 +291,7 @@ class Bmr:
         for circuit_id in circuits:
             assignments[circuit_id] = value
 
-        url = "http://{}/letoSaveRooms".format(self.ip)
+        url = "http://{}/letoSaveRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"value": "".join([str(int(x)) for x in assignments])}
         response = requests.post(url, headers=headers, data=data)
@@ -303,7 +303,7 @@ class Bmr:
     def getLowMode(self):
         """ Get status of the LOW mode.
         """
-        url = "http://{}/loadLows".format(self.ip)
+        url = "http://{}/loadLows".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data={"param": "+"})
         if response.status_code != 200:
@@ -343,7 +343,7 @@ class Bmr:
         if temperature is None:
             temperature = self.getLowMode()["temperature"]
 
-        url = "http://{}/lowSave".format(self.ip)
+        url = "http://{}/lowSave".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {
             "lowData": "{:03d}{}{}".format(
@@ -362,7 +362,7 @@ class Bmr:
         """ Load circuit LOW mode assignments, i.e. which circuits will be
             affected by LOW mode when it is turned on.
         """
-        url = "http://{}/lowLoadRooms".format(self.ip)
+        url = "http://{}/lowLoadRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data={"param": "+"})
         if response.status_code != 200:
@@ -379,7 +379,7 @@ class Bmr:
         for circuit_id in circuits:
             assignments[circuit_id] = value
 
-        url = "http://{}/lowSaveRooms".format(self.ip)
+        url = "http://{}/lowSaveRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"value": "".join([str(int(x)) for x in assignments])}
         response = requests.post(url, headers=headers, data=data)
@@ -393,7 +393,7 @@ class Bmr:
             to what day. It is possible to set different schedule for up 21
             days.
         """
-        url = "http://{}/roomSettings".format(self.ip)
+        url = "http://{}/roomSettings".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         data = {"roomID": "{:02d}".format(circuit_id)}
@@ -441,7 +441,7 @@ class Bmr:
         """ Assign circuits schedules. It is possible to have a different
             schedule for up to 21 days.
         """
-        url = "http://{}/saveAssignmentModes".format(self.ip)
+        url = "http://{}/saveAssignmentModes".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         # Make sure that day_schedules is list with length 21, if not append None's at the end
@@ -465,7 +465,7 @@ class Bmr:
 
     @authenticated
     def loadHDO(self):
-        url = "http://{}/loadHDO".format(self.ip)
+        url = "http://{}/loadHDO".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         response = requests.post(url, headers=headers, data="param=+")
         if response.status_code != 200:
