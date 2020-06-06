@@ -6,7 +6,28 @@ from datetime import datetime, date
 from functools import wraps
 import re
 
-import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+from requests_toolbelt import sessions
+
+
+HTTP_DEFAULT_TIMEOUT = 10  # seconds
+HTTP_DEFAULT_MAX_RETRIES = 10
+
+
+class TimeoutHTTPAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.timeout = HTTP_DEFAULT_TIMEOUT
+        if "timeout" in kwargs:
+            self.timeout = kwargs["timeout"]
+            del kwargs["timeout"]
+        super().__init__(*args, **kwargs)
+
+    def send(self, request, **kwargs):
+        timeout = kwargs.get("timeout")
+        if timeout is None:
+            kwargs["timeout"] = self.timeout
+        return super().send(request, **kwargs)
 
 
 def authenticated(func):
@@ -24,10 +45,27 @@ def authenticated(func):
 
 
 class Bmr:
-    def __init__(self, host, user, password):
-        self.host = host
-        self.user = user
-        self.password = password
+    def __init__(
+        self, base_url, user, password, timeout=HTTP_DEFAULT_TIMEOUT, max_retries=HTTP_DEFAULT_MAX_RETRIES,
+    ):
+        self._user = user
+        self._password = password
+
+        self._http = sessions.BaseUrlSession(base_url=base_url)
+
+        # Retry strategy for http requests
+        retries = Retry(
+            total=max_retries,
+            status_forcelist=[429, 500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
+            backoff_factor=1,  # this will do `sleep({backoff factor} * (2 ** ({number of retries} - 1)))`
+        )
+
+        # Include timeout for http requests
+        adapter = TimeoutHTTPAdapter(timeout=timeout, max_retries=retries)
+
+        self._http.mount("https://", adapter)
+        self._http.mount("http://", adapter)
 
     def _authenticate(self):
         """ Login to BMR controller. Note that BMR controller is using a kinda
@@ -43,12 +81,8 @@ class Bmr:
                 output = output + hex(tmp)[2:].zfill(2)
             return output.upper()
 
-        url = "http://{}/menu.html".format(self.host)
-        data = {
-            "loginName": bmr_hash(self.user),
-            "passwd": bmr_hash(self.password),
-        }
-        response = requests.post(url, data=data)
+        data = {"loginName": bmr_hash(self._user), "passwd": bmr_hash(self._password)}
+        response = self._http.post("/menu.html", data=data)
         if "res_error_title" in response.text:
             return False
         return True
@@ -57,10 +91,9 @@ class Bmr:
     def getNumCircuits(self):
         """ Get the number of heating circuits.
         """
-        url = "http://{}/numOfRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": "+"}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/numOfRooms", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return int(response.text)
@@ -89,10 +122,9 @@ class Bmr:
               POS_LETO = 43
               POS_S_CHLADI = 44
         """
-        url = "http://{}/wholeRoom".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": circuit_id}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/wholeRoom", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
 
@@ -163,10 +195,9 @@ class Bmr:
     def getSchedules(self):
         """Load schedules.
         """
-        url = "http://{}/listOfModes".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"param": "+"}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/listOfModes", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return [x.rstrip() for x in re.findall(r".{13}", response.text)]
@@ -175,10 +206,9 @@ class Bmr:
     def getSchedule(self, schedule_id):
         """ Load schedule settings.
         """
-        url = "http://{}/loadMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"modeID": "{:02d}".format(schedule_id)}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/loadMode", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
 
@@ -215,7 +245,6 @@ class Bmr:
         if timetable[0]["time"] != "00:00":
             raise Exception("First timetable entry must be for time 00:00")
 
-        url = "http://{}/saveMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         data = {
@@ -225,7 +254,7 @@ class Bmr:
                 "".join(["{}{:03d}".format(item["time"], int(item["temperature"])) for item in timetable]),
             )
         }
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/saveMode", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
@@ -234,11 +263,10 @@ class Bmr:
     def deleteSchedule(self, schedule_id):
         """ Delete schedule.
         """
-        url = "http://{}/deleteMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         data = {"modeID": "{:02d}".format(schedule_id)}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/deleteMode", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
@@ -247,9 +275,8 @@ class Bmr:
     def getSummerMode(self):
         """ Return True if summer mode is currently activated.
         """
-        url = "http://{}/loadSummerMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(url, headers=headers, data="param=+")
+        response = self._http.post("/loadSummerMode", headers=headers, data="param=+")
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return response.text == "0"
@@ -258,10 +285,9 @@ class Bmr:
     def setSummerMode(self, value):
         """ Enable or disable summer mode.
         """
-        url = "http://{}/saveSummerMode".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"summerMode": "0" if value else "1"}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/saveSummerMode", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
@@ -271,9 +297,8 @@ class Bmr:
         """ Load circuit summer mode assignments, i.e. which circuits will be
             affected by summer mode when it is turned on.
         """
-        url = "http://{}/letoLoadRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(url, headers=headers, data={"param": "+"})
+        response = self._http.post("/letoLoadRooms", headers=headers, data={"param": "+"})
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         try:
@@ -291,10 +316,9 @@ class Bmr:
         for circuit_id in circuits:
             assignments[circuit_id] = value
 
-        url = "http://{}/letoSaveRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"value": "".join([str(int(x)) for x in assignments])}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/letoSaveRooms", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
@@ -303,9 +327,8 @@ class Bmr:
     def getLowMode(self):
         """ Get status of the LOW mode.
         """
-        url = "http://{}/loadLows".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(url, headers=headers, data={"param": "+"})
+        response = self._http.post("/loadLows", headers=headers, data={"param": "+"})
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         # The response is formatted as "<temperature><start_datetime><end_datetime>", let's parse it
@@ -343,7 +366,6 @@ class Bmr:
         if temperature is None:
             temperature = self.getLowMode()["temperature"]
 
-        url = "http://{}/lowSave".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {
             "lowData": "{:03d}{}{}".format(
@@ -352,7 +374,7 @@ class Bmr:
                 end_datetime.strftime("%Y-%m-%d%H:%M") if enabled and end_datetime else " " * 15,
             )
         }
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/lowSave", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
@@ -362,9 +384,8 @@ class Bmr:
         """ Load circuit LOW mode assignments, i.e. which circuits will be
             affected by LOW mode when it is turned on.
         """
-        url = "http://{}/lowLoadRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(url, headers=headers, data={"param": "+"})
+        response = self._http.post("/lowLoadRooms", headers=headers, data={"param": "+"})
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return [bool(int(x)) for x in list(response.text)]
@@ -379,10 +400,9 @@ class Bmr:
         for circuit_id in circuits:
             assignments[circuit_id] = value
 
-        url = "http://{}/lowSaveRooms".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         data = {"value": "".join([str(int(x)) for x in assignments])}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/lowSaveRooms", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
@@ -393,11 +413,10 @@ class Bmr:
             to what day. It is possible to set different schedule for up 21
             days.
         """
-        url = "http://{}/roomSettings".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         data = {"roomID": "{:02d}".format(circuit_id)}
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/roomSettings", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
 
@@ -441,7 +460,6 @@ class Bmr:
         """ Assign circuits schedules. It is possible to have a different
             schedule for up to 21 days.
         """
-        url = "http://{}/saveAssignmentModes".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
 
         # Make sure that day_schedules is list with length 21, if not append None's at the end
@@ -458,16 +476,15 @@ class Bmr:
                 circuit_id, starting_day, "".join(["{:02d}".format(x if x is not None else -1) for x in day_schedules])
             )
         }
-        response = requests.post(url, headers=headers, data=data)
+        response = self._http.post("/saveAssignmentModes", headers=headers, data=data)
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
     @authenticated
     def getHDO(self):
-        url = "http://{}/loadHDO".format(self.host)
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        response = requests.post(url, headers=headers, data="param=+")
+        response = self._http.post("/loadHDO", headers=headers, data="param=+")
         if response.status_code != 200:
             raise Exception("Server returned status code {}".format(response.status_code))
         return response.text == "1"
