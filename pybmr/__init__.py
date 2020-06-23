@@ -4,9 +4,10 @@
 
 from datetime import datetime, date
 from functools import wraps
+from hashlib import sha256
 import re
 
-from cachetools.func import ttl_cache
+from cachetools.func import ttl_cache, lru_cache
 
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -99,6 +100,20 @@ class Bmr:
         if "res_error_title" in response.text:
             return False
         return True
+
+    @lru_cache(maxsize=1)
+    @authenticated
+    def getUniqueId(self):
+        """ Return unique ID of the entity.
+
+            The BMR HC64 API doesn't provide anything that could be used as a
+            unique ID, such as serial number. Therefore we have to generate it
+            from something that doesn't usually change - such as circuit names.
+
+            Note that this is more like a unique ID for the whole HC64
+            controller, not a unique ID of a circuit.
+        """
+        return sha256(b"\0".join([name.encode("utf-8") for name in self.getCircuitNames()])).hexdigest()[:8]
 
     @lru_cache(maxsize=1)
     @authenticated

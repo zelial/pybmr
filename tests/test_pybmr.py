@@ -26,6 +26,10 @@ def testGetCircuitNames(bmr):
     ]
 
 
+def testGetUniqueId(bmr):
+    assert bmr.getUniqueId() == "3ca28a9b"
+
+
 def testGetCircuit(bmr):
     assert bmr.getCircuit(0) == {
         "id": 0,
