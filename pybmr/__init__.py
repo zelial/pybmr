@@ -6,6 +6,8 @@ from datetime import datetime, date
 from functools import wraps
 import re
 
+from cachetools.func import ttl_cache
+
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from requests_toolbelt import sessions
@@ -13,6 +15,8 @@ from requests_toolbelt import sessions
 
 HTTP_DEFAULT_TIMEOUT = 10  # seconds
 HTTP_DEFAULT_MAX_RETRIES = 10
+CACHE_DEFAULT_MAXSIZE = 128
+CACHE_DEFAULT_TTL = 10
 
 
 class TimeoutHTTPAdapter(HTTPAdapter):
@@ -46,12 +50,21 @@ def authenticated(func):
 
 class Bmr:
     def __init__(
-        self, base_url, user, password, timeout=HTTP_DEFAULT_TIMEOUT, max_retries=HTTP_DEFAULT_MAX_RETRIES,
+        self,
+        base_url,
+        user,
+        password,
+        timeout=HTTP_DEFAULT_TIMEOUT,
+        max_retries=HTTP_DEFAULT_MAX_RETRIES,
+        cache_maxsize=CACHE_DEFAULT_MAXSIZE,
+        cache_ttl=CACHE_DEFAULT_TTL,
     ):
         self._user = user
         self._password = password
 
         self._http = sessions.BaseUrlSession(base_url=base_url)
+        self._cache_maxsize = cache_maxsize
+        self._cache_ttl = cache_ttl
 
         # Retry strategy for http requests
         retries = Retry(
@@ -87,6 +100,7 @@ class Bmr:
             return False
         return True
 
+    @lru_cache(maxsize=1)
     @authenticated
     def getNumCircuits(self):
         """ Get the number of heating circuits.
@@ -98,6 +112,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return int(response.text)
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getCircuit(self, circuit_id):
         """ Get circuit status.
@@ -191,6 +206,7 @@ class Bmr:
 
         return result
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getSchedules(self):
         """Load schedules.
@@ -202,6 +218,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return [x.rstrip() for x in re.findall(r".{13}", response.text)]
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getSchedule(self, schedule_id):
         """ Load schedule settings.
@@ -271,6 +288,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getSummerMode(self):
         """ Return True if summer mode is currently activated.
@@ -292,6 +310,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getSummerModeAssignments(self):
         """ Load circuit summer mode assignments, i.e. which circuits will be
@@ -323,6 +342,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getLowMode(self):
         """ Get status of the LOW mode.
@@ -379,6 +399,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getLowModeAssignments(self):
         """ Load circuit LOW mode assignments, i.e. which circuits will be
@@ -407,6 +428,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getCircuitSchedules(self, circuit_id):
         """ Load circuit schedule assignments, i.e. which schedule is assigned
@@ -481,6 +503,7 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return "true" in response.text
 
+    @ttl_cache(maxsize=1, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getHDO(self):
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
