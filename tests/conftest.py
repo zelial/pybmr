@@ -12,6 +12,8 @@ def fakeserver(url, headers=None, data=None):
         response.text = ""
     elif url.endswith("/numOfRooms"):
         response.text = "16"
+    elif url.endswith("/listOfRooms"):
+        response.text = "F01 Byt      F02 Pokoj    F03 Loznice  F04 Koupelna F05 Det pokojF06 Chodba   F07 Kuchyne  F08 Obyvak   R01 Byt      R02 Pokoj    R03 Loznice  R04 Koupelna R05 Det pokojR06 Chodba   R07 Kuchyne  R08 Obyvak  "  # noqa
     elif url.endswith("/wholeRoom"):
         response.text = "1F01 Byt      017.5+32032.0000.005.0000000000"
     elif url.endswith("/listOfModes"):

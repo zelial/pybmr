@@ -112,6 +112,19 @@ class Bmr:
             raise Exception("Server returned status code {}".format(response.status_code))
         return int(response.text)
 
+    @lru_cache(maxsize=1)
+    @authenticated
+    def getCircuitNames(self):
+        """ Get the names of all heating circuits.
+        """
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"param": "+"}
+        response = self._http.post("/listOfRooms", headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception("Server returned status code {}".format(response.status_code))
+        # Example: F01 Byt      F02 Pokoj    F03 Loznice  F04 Koupelna F05 Det pokojF06 Chodba   F07 Kuchyne  F08 Obyvak   R01 Byt      R02 Pokoj    R03 Loznice  R04 Koupelna R05 Det pokojR06 Chodba   R07 Kuchyne  R08 Obyvak  # noqa
+        return [response.text[i : i + 13].strip() for i in range(0, len(response.text), 13)]
+
     @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getCircuit(self, circuit_id):

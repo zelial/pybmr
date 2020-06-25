@@ -5,6 +5,27 @@ def testGetNumCircuits(bmr):
     assert bmr.getNumCircuits() == 16
 
 
+def testGetCircuitNames(bmr):
+    assert bmr.getCircuitNames() == [
+        "F01 Byt",
+        "F02 Pokoj",
+        "F03 Loznice",
+        "F04 Koupelna",
+        "F05 Det pokoj",
+        "F06 Chodba",
+        "F07 Kuchyne",
+        "F08 Obyvak",
+        "R01 Byt",
+        "R02 Pokoj",
+        "R03 Loznice",
+        "R04 Koupelna",
+        "R05 Det pokoj",
+        "R06 Chodba",
+        "R07 Kuchyne",
+        "R08 Obyvak",
+    ]
+
+
 def testGetCircuit(bmr):
     assert bmr.getCircuit(0) == {
         "id": 0,
