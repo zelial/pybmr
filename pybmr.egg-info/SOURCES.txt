@@ -6,3 +6,6 @@ pybmr.egg-info/SOURCES.txt
 pybmr.egg-info/dependency_links.txt
 pybmr.egg-info/requires.txt
 pybmr.egg-info/top_level.txt
+tests/__init__.py
+tests/conftest.py
+tests/test_pybmr.py
