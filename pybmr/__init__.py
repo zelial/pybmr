@@ -218,7 +218,12 @@ class Bmr:
             pass
 
         try:
-            result["target_temperature"] = float(room_status["target_temperature"])
+            # If summer mode is turned on (which means the system is powered
+            # down) we will return target temperature as `None`, not 0 degrees
+            if not bool(int(room_status["summer_mode"])):
+                result["target_temperature"] = float(room_status["target_temperature"])
+            else:
+                result["target_temperature"] = None
         except ValueError:
             pass
 
