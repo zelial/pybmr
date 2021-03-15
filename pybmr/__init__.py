@@ -205,15 +205,25 @@ class Bmr:
             "target_temperature": None,
             "user_offset": None,
             "max_offset": None,
-            "heating": bool(int(room_status["heating"])),
+            "heating": False,
             "warning": int(room_status["warning"]),
-            "cooling": bool(int(room_status["cooling"])),
+            "cooling": False,
             "low_mode": bool(int(room_status["low_mode"])),
             "summer_mode": bool(int(room_status["summer_mode"])),
         }
 
         try:
             result["temperature"] = float(room_status["temperature"])
+        except ValueError:
+            pass
+
+        try:
+            result["heating"] = bool(int(room_status["heating"]))
+        except ValueError:
+            pass
+
+        try:
+            result["cooling"] = bool(int(room_status["cooling"]))
         except ValueError:
             pass
 
