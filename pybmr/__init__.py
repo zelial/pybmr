@@ -206,26 +206,26 @@ class Bmr:
             "user_offset": None,
             "max_offset": None,
             "heating": False,
-            "warning": int(room_status["warning"]),
+            "warning": 0,
             "cooling": False,
-            "low_mode": bool(int(room_status["low_mode"])),
-            "summer_mode": bool(int(room_status["summer_mode"])),
+            "low_mode": False,
+            "summer_mode": False,
         }
 
-        try:
-            result["temperature"] = float(room_status["temperature"])
-        except ValueError:
-            pass
-
-        try:
-            result["heating"] = bool(int(room_status["heating"]))
-        except ValueError:
-            pass
-
-        try:
-            result["cooling"] = bool(int(room_status["cooling"]))
-        except ValueError:
-            pass
+        for key in (
+            "temperature",
+            "heating",
+            "cooling",
+            "warning",
+            "low_mode",
+            "summer_mode",
+            "user_offset",
+            "max_offset",
+        ):
+            try:
+                result[key] = float(room_status[key])
+            except ValueError:
+                pass
 
         try:
             # If summer mode is turned on (which means the system is powered
@@ -234,16 +234,6 @@ class Bmr:
                 result["target_temperature"] = float(room_status["target_temperature"])
             else:
                 result["target_temperature"] = None
-        except ValueError:
-            pass
-
-        try:
-            result["user_offset"] = float(room_status["user_offset"])
-        except ValueError:
-            pass
-
-        try:
-            result["max_offset"] = float(room_status["max_offset"])
         except ValueError:
             pass
 
