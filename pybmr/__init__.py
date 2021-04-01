@@ -230,8 +230,12 @@ class Bmr:
         try:
             # If summer mode is turned on (which means the system is powered
             # down) we will return target temperature as `None`, not 0 degrees
+            #
+            # Also ignore and set it to None if target temperature is 0
+            # degrees. That is most likely a nonsense reported when the
+            # heating controller is reloading configuration.
             if not bool(int(room_status["summer_mode"])):
-                result["target_temperature"] = float(room_status["target_temperature"])
+                result["target_temperature"] = float(room_status["target_temperature"]) or None
             else:
                 result["target_temperature"] = None
         except ValueError:
