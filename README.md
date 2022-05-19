@@ -34,7 +34,7 @@ Load circuit status:
 
 ```
 circuit = bmr.getCircuit(0)
-print(f"Circuit {circuit['name']}: temperature is {circuit['temperature']} °C, target temperature is {circuit['target_temperature'} °C")
+print(f"Circuit {circuit['name']}: temperature is {circuit['temperature']} °C, target temperature is {circuit['target_temperature']} °C")
 ```
 
 Load circuit schedules (what schedule is assigned to what day). It is possible to assign a different schedule for up to 21 days.
