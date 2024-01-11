@@ -205,30 +205,39 @@ class Bmr:
             "target_temperature": None,
             "user_offset": None,
             "max_offset": None,
-            "heating": bool(int(room_status["heating"])),
-            "warning": int(room_status["warning"]),
-            "cooling": bool(int(room_status["cooling"])),
-            "low_mode": bool(int(room_status["low_mode"])),
-            "summer_mode": bool(int(room_status["summer_mode"])),
+            "heating": False,
+            "warning": 0,
+            "cooling": False,
+            "low_mode": False,
+            "summer_mode": False,
         }
 
-        try:
-            result["temperature"] = float(room_status["temperature"])
-        except ValueError:
-            pass
+        for key in (
+            "temperature",
+            "heating",
+            "cooling",
+            "warning",
+            "low_mode",
+            "summer_mode",
+            "user_offset",
+            "max_offset",
+        ):
+            try:
+                result[key] = float(room_status[key])
+            except ValueError:
+                pass
 
         try:
-            result["target_temperature"] = float(room_status["target_temperature"])
-        except ValueError:
-            pass
-
-        try:
-            result["user_offset"] = float(room_status["user_offset"])
-        except ValueError:
-            pass
-
-        try:
-            result["max_offset"] = float(room_status["max_offset"])
+            # If summer mode is turned on (which means the system is powered
+            # down) we will return target temperature as `None`, not 0 degrees
+            #
+            # Also ignore and set it to None if target temperature is 0
+            # degrees. That is most likely a nonsense reported when the
+            # heating controller is reloading configuration.
+            if not bool(int(room_status["summer_mode"])):
+                result["target_temperature"] = float(room_status["target_temperature"]) or None
+            else:
+                result["target_temperature"] = None
         except ValueError:
             pass
 

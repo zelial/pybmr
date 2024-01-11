@@ -2,8 +2,9 @@
 
 Python library for communication with BMR HC64 Heating Controller units.
 
-Product website: https://bmr.cz/produkty/regulace-topeni/rnet
-
+Product website: 
+ - https://bmr.cz/produkty/regulace-topeni/rnet
+ - https://bmr.cz/produkty/regulace-topeni/rt64
 
 ## Install:
 
@@ -33,7 +34,7 @@ Load circuit status:
 
 ```
 circuit = bmr.getCircuit(0)
-print(f"Circuit {circuit['name']}: temperature is {circuit['temperature']} °C, target temperature is {circuit['target_temperature'} °C")
+print(f"Circuit {circuit['name']}: temperature is {circuit['temperature']} °C, target temperature is {circuit['target_temperature']} °C")
 ```
 
 Load circuit schedules (what schedule is assigned to what day). It is possible to assign a different schedule for up to 21 days.
@@ -184,3 +185,7 @@ if hdo:
 else:
   print("HDO is currently OFF")
 ```
+
+## Backup of BMR Controler Unit Configuration
+
+There is a CLI tool that can be used to backup configuration of actual BMR Controler Unit. It can be used in automations or just as a remote management tool. For more information refer to https://github.com/dankeder/bmrcli

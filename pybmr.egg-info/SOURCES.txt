@@ -1,6 +1,9 @@
 LICENSE.md
+MANIFEST.in
 README.md
+requirements.txt
 setup.py
+test-requirements.txt
 pybmr/__init__.py
 pybmr.egg-info/PKG-INFO
 pybmr.egg-info/SOURCES.txt
