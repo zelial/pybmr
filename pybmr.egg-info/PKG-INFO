@@ -1,17 +1,23 @@
 Metadata-Version: 2.1
 Name: pybmr
-Version: 0.7.5
+Version: 0.7.9
 Summary: Python library for communication with BMR HC64 Heating Controller units
 Home-page: https://github.com/slesinger/pybmr
 Author: Honza Slesinger
 Author-email: slesinger@gmail.com
-License: UNKNOWN
-Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: Apache Software License
 Classifier: Operating System :: OS Independent
 Description-Content-Type: text/markdown
 License-File: LICENSE.md
+Requires-Dist: cachetools>=5.3.0
+Requires-Dist: certifi>=2023.11.17
+Requires-Dist: chardet>=3.0.4
+Requires-Dist: charset-normalizer>=3.2.0
+Requires-Dist: idna>=3.6
+Requires-Dist: requests-toolbelt>=1.0.0
+Requires-Dist: requests>=2.31.0
+Requires-Dist: urllib3>=1.26.18
 
 # PyBmr
 
@@ -204,5 +210,3 @@ else:
 ## Backup of BMR Controler Unit Configuration
 
 There is a CLI tool that can be used to backup configuration of actual BMR Controler Unit. It can be used in automations or just as a remote management tool. For more information refer to https://github.com/dankeder/bmrcli
-
-
