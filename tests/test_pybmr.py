@@ -150,7 +150,9 @@ def testGetLowMode(bmr):
 
 
 def testSetLowMode(bmr):
-    assert bmr.setLowMode(True, 18, datetime(2020, 4, 30, 18, 0, 0), datetime(2020, 9, 30, 18, 0, 0))
+    assert bmr.setLowMode(
+        True, 18, datetime(2020, 4, 30, 18, 0, 0), datetime(2020, 9, 30, 18, 0, 0)
+    )
 
 
 def testGetLowModeAssignments(bmr):
@@ -179,7 +181,11 @@ def testSetLowModeAssignments(bmr):
 
 
 def testGetCircuitSchedules(bmr):
-    assert bmr.getCircuitSchedules(0) == {"current_day": 1, "day_schedules": [8], "starting_day": 1}
+    assert bmr.getCircuitSchedules(0) == {
+        "current_day": 1,
+        "day_schedules": [8],
+        "starting_day": 1,
+    }
 
 
 def testSetCircuitSchedules(bmr):
