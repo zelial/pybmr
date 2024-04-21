@@ -2,6 +2,12 @@
 
 Python library for communication with BMR HC64 Heating Controller units.
 
+### Features
+
+- List, read and save heating circuits
+- HDO reading
+- List, read and set shutter blinds (experimental)
+
 Product website: 
  - https://bmr.cz/produkty/regulace-topeni/rnet
  - https://bmr.cz/produkty/regulace-topeni/rt64
