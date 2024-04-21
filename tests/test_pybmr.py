@@ -194,3 +194,58 @@ def testSetCircuitSchedules(bmr):
 
 def testGetHDO(bmr):
     assert not bmr.getHDO()
+
+
+def testGetNumOfRollerShutters(bmr):
+    assert bmr.getNumOfRollerShutters() == 12
+
+
+def testGetListOfRollerShutters(bmr):
+    """
+    'Kuchyna      Jedalen      Terasa velke Terasa male  Obyvacka 1   Obyvacka 2   Hostovska    Pracovna     Kupelna hore Spalna       Izba velka   Izba mala    '
+    """
+    res = bmr.getListOfRollerShutters()
+    assert len(res) == 12
+    assert res[0] == "Kuchyna"
+    assert res[11] == "Izba mala"
+
+
+def testGetWindSensorStatus(bmr):
+    assert bmr.getWindSensorStatus() == '0000000001111111111111111111111111111111100000000000'
+
+
+def testGetWholeRollerShutter_0(bmr):
+    """1Kuchyna      0000010000000000000"""
+    shutter_id = 0
+    ret = bmr.getWholeRollerShutter(shutter_id)
+    assert ret.get("name") == "Kuchyna"
+    assert ret.get("pos") == 0
+    assert ret.get("tilt") == 0
+    
+
+def testGetWholeRollerShutter_1(bmr):
+    """'1Jedalen      0000010000000000000'"""
+    shutter_id = 1
+    ret = bmr.getWholeRollerShutter(shutter_id)
+    assert ret.get("name") == "Jedalen"
+    assert ret.get("pos") == 0
+    assert ret.get("tilt") == 0
+
+
+# def test_rollerShutterIntermediate(bmr):
+#     response = requests.get('/rollerShutterIntermediate')
+#     assert response.text == 'Mezipoloha   '
+
+
+def testSaveManualChange_07100(bmr):
+    shutterId = 7
+    pos = 1  # closed
+    tilt = 100  # open
+    assert bmr.saveManualChange(shutterId, pos, tilt) == True
+
+
+def testSaveManualChange_07200(bmr):
+    shutterId = 7
+    pos = 20  # sits
+    tilt = 10  # almost closed
+    assert bmr.saveManualChange(shutterId, pos, tilt) == True

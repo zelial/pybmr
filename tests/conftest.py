@@ -53,6 +53,23 @@ def fakeserver(url, headers=None, data=None):
     elif url.endswith("/saveAssignmentModes"):
         if data["roomSettings"] == "0001010809-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1-1":
             response.text = "true"
+
+    elif url.endswith("/numOfRollerShutters"):
+        response.text = "12"
+    elif url.endswith("/listOfRollerShutters"):
+        response.text = "Kuchyna      Jedalen      Terasa velke Terasa male  Obyvacka 1   Obyvacka 2   Hostovska    Pracovna     Kupelna hore Spalna       Izba velka   Izba mala    "
+    elif url.endswith("/windSensorStatus"):
+        response.text = "0000000001111111111111111111111111111111100000000000"
+    elif url.endswith("/wholeRollerShutter") and data["rollerShutter"] == "0":
+        response.text = "1Kuchyna      0000010000000000000"
+    elif url.endswith("/wholeRollerShutter") and data["rollerShutter"] == "1":
+        response.text = "1Jedalen      0000010000000000000"
+    elif url.endswith("/rollerShutterIntermediate"):
+        response.text = "Mezipoloha   "
+    elif url.endswith("/saveManualChange") and data["manualChange"] == "07100":
+        response.text = "HTTP/1.1 200 Ok\n\ntrue\n"
+    elif url.endswith("/saveManualChange") and data["manualChange"] == "07209":
+        response.text = "HTTP/1.1 200 Ok\n\ntrue\n"
     return response
 
 

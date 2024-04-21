@@ -69,7 +69,7 @@ class Bmr:
         retries = Retry(
             total=max_retries,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=[
+            allowed_methods=[
                 "HEAD",
                 "GET",
                 "PUT",
@@ -650,3 +650,145 @@ class Bmr:
                 "Server returned status code {}".format(response.status_code)
             )
         return response.text == "1"
+
+
+    @ttl_cache(maxsize=1, ttl=CACHE_DEFAULT_TTL)
+    @authenticated
+    def getNumOfRollerShutters(self) -> int:
+        """
+        Get the number of installed roller shutters.
+        Example call:
+        curl 'http://bmr-hc64.local/numOfRollerShutters' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
+        --data-raw 'param=+'
+        """
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"param": "+"}
+        response = self._http.post("/numOfRollerShutters", headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception(
+                "Server returned status code {}".format(response.status_code)
+            )
+        return int(response.text)
+
+
+    @ttl_cache(maxsize=1, ttl=CACHE_DEFAULT_TTL)
+    @authenticated
+    def getListOfRollerShutters(self) -> list[str]:
+        """
+        Get the names of installed roller shutters as a list.
+        Example API response text: 'Kuchyna      Jedalen      Terasa velke Terasa male  Obyvacka 1   Obyvacka 2   Hostovska    Pracovna     Kupelna hore Spalna       Izba velka   Izba mala    '
+        Example call:
+        curl 'http://bmr-hc64.local/listOfRollerShutters' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' --data-raw 'param=+'
+        """
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"param": "+"}
+        response = self._http.post("/listOfRollerShutters", headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception(
+                "Server returned status code {}".format(response.status_code)
+            )
+        return [
+            response.text[i : i + 13].strip() for i in range(0, len(response.text), 13)
+        ]
+
+
+    @ttl_cache(maxsize=1, ttl=CACHE_DEFAULT_TTL)
+    @authenticated
+    def getWindSensorStatus(self):
+        """
+        Example API call:
+        curl 'http://bmr-hc64.local/windSensorStatus' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' --data-raw 'param=+'
+        Example response:
+        0000000001111111111111111111111111111111100000000000
+        """
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"param": "+"}
+        response = self._http.post("/windSensorStatus", headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception(
+                "Server returned status code {}".format(response.status_code)
+            )
+        return response.text  # TODO not sure what to do with this
+
+
+    @ttl_cache(maxsize=1, ttl=CACHE_DEFAULT_TTL)
+    @authenticated
+    def getWholeRollerShutter(self, shutter_id:int) -> dict:
+        """
+        Get the status of a single roller shutter.
+        Example API call:
+        curl 'http:///bmr-hc64.local/wholeRollerShutter' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' --data-raw 'rollerShutter=6'
+        Example API response:
+        '1Kuchyna      0000010000000000000'
+        """
+        assert 0 <= shutter_id <= 32
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        data = {"rollerShutter": str(shutter_id)}
+        response = self._http.post("/wholeRollerShutter", headers=headers, data=data)
+        if response.status_code != 200:
+            raise Exception(
+                "Server returned status code {}".format(response.status_code)
+            )
+        
+        # TODO how is the response formatted?
+        ret = {
+            "name": response.text[1:14].strip(),
+            "pos": int(response.text[14:15]),
+            "tilt": int(response.text[15:17]),
+        }
+        return ret
+    
+
+    @authenticated
+    def saveManualChange(self, shutter_id:int, pos:int, tilt:int) -> bool:
+        """
+        Set shutter blind to a specific position.
+
+        Formatting of the request data:
+        0-1: blind ID, starts from 0, simple decimal number, no bitmask - can't change multiple blinds with a single call
+        2: position. It maps from 100 fully open to 0 fully closed to:
+            0: open / otevreno (fully pulled up)
+            1: closed / zavreno (fully lowered down)
+            2: sits / sterbiny (3/4 down )
+            3: half / mezipoloha (in the middle)
+        3-4: tilt: It maps from 100 fully open to 0 fully closed to: <0 - 10>
+            0: open - segments horizontally, mamimum light passing through
+            10: closed - segments vertically, mimimum light pasing through
+            One step translates to a minimal impulse to the motors to open/close the blinds.
+            With my motors, 5 steps are enough to go from fully open to fully closed.
+            Position is relative. When going from 10 when closed to 5, blinds fully open, Same when going from 5 to 0.
+
+        Example call:
+        curl 'http://bmr-hc64.local/saveManualChange' -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
+        --data-raw 'manualChange=07200'
+        """
+        try:
+            assert 0 <= shutter_id <= 32
+            assert 0 <= pos <= 100
+            assert 0 <= tilt <= 100
+
+            bmr_pos:int = 1
+            if pos > 90:
+                bmr_pos = 0
+            elif pos > 45:
+                bmr_pos = 3
+            elif pos > 15:
+                bmr_pos = 2
+
+            bmr_tilt:int = int((100 - tilt) / 10)
+            headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+            data = {"manualChange": f"{shutter_id:02d}{bmr_pos:01d}{bmr_tilt:02d}"}
+            print(data)
+            response = self._http.post("/saveManualChange", headers=headers, data=data)
+            if response.status_code != 200:
+                raise Exception(
+                    "Server returned status code {}".format(response.status_code)
+                )
+            print("DATA")
+            print(data)
+            print(response.text)
+            ret = "true" in response.text
+            return ret
+        except Exception as e:
+            print(e)
+            return False
