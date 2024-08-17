@@ -729,15 +729,41 @@ class Bmr:
             raise Exception(
                 "Server returned status code {}".format(response.status_code)
             )
-        
-        # TODO how is the response formatted?
+
+        """ response is a 33 char string with the following format
+         0: a number, alway 2 in my case, not sure the significance
+         1:13: roller name
+         14:17: position, decimal number 0-100, represents percentage of shutter being fully lowered
+            0: shutter fully up
+            100: shutter fully down
+         18:24: unknown, always 1010000 in my case
+         25:26: tilt preset, decimal 0-10, set via schedule,
+                can be overridden manually via webUI or wall switches
+         27:29: position, decimal number 0-100, not sure why repeated again.
+                Always the same as 15:17. One is likely for the set and one for the current position
+                as the webUI distinguish between both but internal implementation seem to be missing
+                and thus values are always the same.
+         30:31: tilt current, decimal 0-10, set via WebUI or wall switches.
+         32:33: tilt current, decimal 0-10, set via WebUI or wall switches.
+                Always the same as 30:31.
+
+
+        example response:
+        2Roleta  1    0001010000000000000
+        2Roleta  2    0761010000000760606
+        2Roleta  3    0401010000000400202
+        2Roleta  4    1001010000101000606
+        2Roleta  5    1001010000101000707
+        2Roleta  6    1001010000001000303
+        2Roleta  7    1001010000001000202
+        """
         ret = {
-            "name": response.text[1:14].strip(),
-            "pos": int(response.text[14:15]),
-            "tilt": int(response.text[15:17]),
+            "name": response.text[1:13].strip(),
+            "pos": int(response.text[14:17]),
+            "tilt": int(response.text[30:31]),
         }
         return ret
-    
+
 
     @authenticated
     def saveManualChange(self, shutter_id:int, pos:int, tilt:int) -> bool:
@@ -746,11 +772,11 @@ class Bmr:
 
         Formatting of the request data:
         0-1: blind ID, starts from 0, simple decimal number, no bitmask - can't change multiple blinds with a single call
-        2: position. It maps from 100 fully open to 0 fully closed to:
+        2: position preset. It maps from 100 fully open to 0 fully closed to:
             0: open / otevreno (fully pulled up)
             1: closed / zavreno (fully lowered down)
-            2: sits / sterbiny (3/4 down )
-            3: half / mezipoloha (in the middle)
+            2: slits / sterbiny (75% down )
+            3: in-between / mezipoloha (40% down)
         3-4: tilt: It maps from 100 fully open to 0 fully closed to: <0 - 10>
             0: open - segments horizontally, mamimum light passing through
             10: closed - segments vertically, mimimum light pasing through
