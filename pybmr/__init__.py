@@ -734,11 +734,12 @@ class Bmr:
                 "Server returned status code {}".format(response.status_code)
             )
         
-        # TODO how is the response formatted?
+        # Response format: enabled(1) + name(13) + pos(2) + tilt(2) + ...
+        # pos and tilt use 0-10 scale: 0=open, 10=closed
         ret = {
             "name": response.text[1:14].strip(),
-            "pos": int(response.text[14:15]),
-            "tilt": int(response.text[15:17]),
+            "pos": int(response.text[14:16]),
+            "tilt": int(response.text[16:18]),
         }
         return ret
     
