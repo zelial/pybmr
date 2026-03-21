@@ -2,14 +2,18 @@
 # Tested with:
 #    BMR HC64 v2013
 
+import logging
 from datetime import datetime, date
 from functools import wraps
 from hashlib import sha256
 import re
+
 from cachetools.func import ttl_cache, lru_cache
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from requests_toolbelt import sessions
+
+_LOGGER = logging.getLogger(__name__)
 
 
 HTTP_DEFAULT_TIMEOUT = 5  # seconds
@@ -715,7 +719,7 @@ class Bmr:
         return response.text  # TODO not sure what to do with this
 
 
-    @ttl_cache(maxsize=1, ttl=CACHE_DEFAULT_TTL)
+    @ttl_cache(maxsize=CACHE_DEFAULT_MAXSIZE, ttl=CACHE_DEFAULT_TTL)
     @authenticated
     def getWholeRollerShutter(self, shutter_id:int) -> dict:
         """
@@ -734,13 +738,15 @@ class Bmr:
                 "Server returned status code {}".format(response.status_code)
             )
         
-        # Response format: enabled(1) + name(13) + pos(2) + tilt(2) + ...
-        # pos and tilt use 0-10 scale: 0=open, 10=closed
+        # Response: enabled(1) + name(13) + data(19)
+        # Data: pos(2) + unknown(11) + pos_dup(2) + tilt(2) + tilt_dup(2) + unknown(1)
+        # pos: 0-10 (0=open, 10=closed), tilt: 0-10 (0=horizontal, 10=vertical)
         ret = {
             "name": response.text[1:14].strip(),
             "pos": int(response.text[14:16]),
-            "tilt": int(response.text[16:18]),
+            "tilt": int(response.text[29:31]),
         }
+        _LOGGER.debug("Shutter %d raw response: %r → %s", shutter_id, response.text, ret)
         return ret
     
 
