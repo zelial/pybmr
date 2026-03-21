@@ -12,8 +12,8 @@ from requests.packages.urllib3.util.retry import Retry
 from requests_toolbelt import sessions
 
 
-HTTP_DEFAULT_TIMEOUT = 10  # seconds
-HTTP_DEFAULT_MAX_RETRIES = 10
+HTTP_DEFAULT_TIMEOUT = 5  # seconds
+HTTP_DEFAULT_MAX_RETRIES = 2
 CACHE_DEFAULT_MAXSIZE = 128
 CACHE_DEFAULT_TTL = 10
 
@@ -78,7 +78,7 @@ class Bmr:
                 "TRACE",
                 "POST",
             ],
-            backoff_factor=1,  # this will do `sleep({backoff factor} * (2 ** ({number of retries} - 1)))`
+            backoff_factor=0.5,  # max wait with 2 retries: 0.5s + 1s = 1.5s
         )
 
         # Include timeout for http requests
