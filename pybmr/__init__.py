@@ -55,15 +55,12 @@ class Bmr:
         password,
         timeout=HTTP_DEFAULT_TIMEOUT,
         max_retries=HTTP_DEFAULT_MAX_RETRIES,
-        cache_maxsize=CACHE_DEFAULT_MAXSIZE,
-        cache_ttl=CACHE_DEFAULT_TTL,
     ):
         self._user = user
         self._password = password
+        self._auth_day = None
 
         self._http = sessions.BaseUrlSession(base_url=base_url)
-        self._cache_maxsize = cache_maxsize
-        self._cache_ttl = cache_ttl
 
         # Retry strategy for http requests
         retries = Retry(
@@ -91,20 +88,27 @@ class Bmr:
         """Login to BMR controller. Note that BMR controller is using a kinda
         weird and insecure authentication mechanism - it looks like it's
         just remembering the username and IP address of the logged-in user.
+
+        The auth hash uses day-of-month as key, so we cache the result
+        per day to avoid re-POSTing /menu.html on every API call.
         """
+        today = date.today().day
+        if self._auth_day == today:
+            return True
 
         def bmr_hash(value):
             output = ""
-            day = date.today().day
             for c in value:
-                tmp = ord(c) ^ (day << 2)
+                tmp = ord(c) ^ (today << 2)
                 output = output + hex(tmp)[2:].zfill(2)
             return output.upper()
 
         data = {"loginName": bmr_hash(self._user), "passwd": bmr_hash(self._password)}
         response = self._http.post("/menu.html", data=data)
         if "res_error_title" in response.text:
+            self._auth_day = None
             return False
+        self._auth_day = today
         return True
 
     @lru_cache(maxsize=1)
