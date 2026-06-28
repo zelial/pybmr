@@ -1,4 +1,9 @@
-# PyBmr
+# PyBmr (zelial fork)
+
+> **Fork status:** This fork adds working roller shutter/blind support for BMR HC64 controllers.
+> The changes are being proposed for merging into [upstream](https://github.com/slesinger/pybmr) via
+> [slesinger/pybmr#15](https://github.com/slesinger/pybmr/issues/15).
+> Once merged, this fork will be retired in favour of the upstream package.
 
 Python library for communication with BMR HC64 Heating Controller units.
 
@@ -6,7 +11,7 @@ Python library for communication with BMR HC64 Heating Controller units.
 
 - List, read and save heating circuits
 - HDO reading
-- List, read and set shutter blinds (experimental)
+- List, read and set roller shutters/blinds
 
 Product website: 
  - https://bmr.cz/produkty/regulace-topeni/rnet
